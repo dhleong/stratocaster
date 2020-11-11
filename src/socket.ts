@@ -37,11 +37,13 @@ function parseData(message: proto.CastMessage): MessageData {
  */
 export class StratoSocket {
     private conn: tls.TLSSocket | undefined;
+    private disconnected = false;
 
     private pendingDataLength = 0;
     private pendingData: Buffer | undefined;
 
     private readonly receivers: CancellableAsyncSink<Message>[] = [];
+    private lastId = 0;
 
     constructor(
         private readonly opts: {
@@ -51,6 +53,10 @@ export class StratoSocket {
             senderId?: string,
         },
     ) {}
+
+    public get isConnected() {
+        return this.conn && !this.disconnected;
+    }
 
     public async open() {
         if (this.conn) {
@@ -67,6 +73,7 @@ export class StratoSocket {
         // TODO handle errors, disconnects, etc.
         return new Promise((resolve/* , reject */) => {
             this.conn = tls.connect(target)
+                .on("end", () => this.onClosed())
                 .on("data", data => this.onDataReceived(data))
                 .on("secureConnect", () => {
                     // TODO: extract this to an "app" or something
@@ -86,6 +93,10 @@ export class StratoSocket {
         }
 
         this.conn.end();
+    }
+
+    public nextId(): number {
+        return ++this.lastId;
     }
 
     public receive() {
@@ -128,6 +139,14 @@ export class StratoSocket {
         const header = Buffer.alloc(4);
         header.writeUInt32BE(data.length, 0);
         s.write(Buffer.concat([header, data]));
+    }
+
+    private onClosed() {
+        this.disconnected = true;
+        for (const receiver of this.receivers) {
+            // TODO forward error?
+            receiver.end();
+        }
     }
 
     private onDataReceived(received: Buffer) {
