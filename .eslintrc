@@ -2,8 +2,11 @@
   "root": true,
   "rules": {
     "@typescript-eslint/explicit-module-boundary-types": 0,
+    "@typescript-eslint/indent": ["error", 4],
     "@typescript-eslint/switch-exhaustiveness-check": 1,
+    "@typescript-eslint/quotes": ["error", "double"],
     "import/prefer-default-export": 0,
+    "arrow-parens": ["error", "as-needed"],
     "consistent-return": 0,
     "default-case": 0,
     "no-restricted-syntax": 0,
@@ -13,6 +16,7 @@
     "@typescript-eslint"
   ],
   "extends": [
+    "airbnb-typescript/base",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended"
   ],

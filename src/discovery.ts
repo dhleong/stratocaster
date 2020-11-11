@@ -1,9 +1,9 @@
 import _debug from "debug";
-const debug = _debug("stratocaster:discovery");
-
 import mdns from "mdns-js";
 
 import { CancellableAsyncSink } from "./util/async";
+
+const debug = _debug("stratocaster:discovery");
 
 export interface IChromecastService {
     address: string;
