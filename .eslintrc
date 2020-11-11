@@ -8,6 +8,7 @@
     }],
     "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/indent": ["error", 4],
+    "@typescript-eslint/lines-between-class-members": 0,
     "@typescript-eslint/switch-exhaustiveness-check": 1,
     "@typescript-eslint/quotes": ["error", "double"],
     "import/prefer-default-export": 0,

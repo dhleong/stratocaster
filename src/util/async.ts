@@ -1,4 +1,4 @@
-import { AsyncSink } from "ix/asynciterable";
+import { AsyncSink } from "ix/asynciterable/asyncsink";
 
 /**
  * Drop-in replacement for AsyncSink that also handles early cancellation,
