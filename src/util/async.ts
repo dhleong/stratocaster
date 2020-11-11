@@ -11,15 +11,15 @@ export class CancellableAsyncSink<T> implements AsyncIterator<T>, AsyncIterable<
         private readonly onCancel: () => void,
     ) {}
 
-    end() {
+    public end() {
         this.sink.end();
     }
 
-    next() {
+    public next() {
         return this.sink.next();
     }
 
-    async return(value: T) {
+    public async return(value: T) {
         this.onCancel();
         return {
             value,
@@ -27,11 +27,11 @@ export class CancellableAsyncSink<T> implements AsyncIterator<T>, AsyncIterable<
         };
     }
 
-    write(value: T) {
+    public write(value: T) {
         this.sink.write(value);
     }
 
-    [Symbol.asyncIterator]() {
+    public [Symbol.asyncIterator]() {
         return this;
     }
 }
