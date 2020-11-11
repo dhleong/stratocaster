@@ -8,6 +8,7 @@ const debug = _debug("stratocaster:discovery");
 export interface IChromecastService {
     address: string;
     id: string;
+    model: string;
     name: string;
     port: number;
 }
@@ -40,11 +41,14 @@ function parseService(
     }
 
     let id: string | undefined;
+    let model: string | undefined;
     let name: string | undefined;
 
     for (const line of update.txt) {
         if (!id && line.startsWith("id=")) {
             id = line.substr(3);
+        } else if (!model && line.startsWith("md=")) {
+            model = line.substr(3);
         } else if (!name && line.startsWith("fn=")) {
             name = line.substr(3);
         }
@@ -52,14 +56,15 @@ function parseService(
         if (id && name) break;
     }
 
-    if (!(id && name)) {
-        debug("candidate missing friendlyName and ID:", update);
+    if (!(id && name && model)) {
+        debug("candidate missing friendlyName, ID, or model:", update);
         return;
     }
 
     return {
         address: update.addresses[0],
         id,
+        model,
         name,
         port: update.port,
     };
@@ -68,7 +73,6 @@ function parseService(
 export function discover(
     options: DiscoveryOptions = DEFAULT_DISCOVERY_OPTS,
 ): AsyncIterable<IChromecastService> {
-
     const opts = {
         DEFAULT_DISCOVERY_OPTS,
         ...options,
