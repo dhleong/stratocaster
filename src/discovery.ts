@@ -61,6 +61,8 @@ function parseService(
         return;
     }
 
+    debug("parsed", update);
+
     return {
         address: update.addresses[0],
         id,

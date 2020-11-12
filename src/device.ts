@@ -3,7 +3,7 @@ import _debug from "debug";
 import { StratoApp } from "./app";
 import { performAuth } from "./auth";
 import { IChannelOptions, StratoChannel } from "./channel";
-import { findNamed, IChromecastService } from "./discovery";
+import { discover, findNamed, IChromecastService } from "./discovery";
 import { StratoSocket } from "./socket";
 
 import {
@@ -29,9 +29,36 @@ export interface IDeviceOpts {
     authenticate?: boolean;
 }
 
+function acceptAny() {
+    return true;
+}
+
 export class ChromecastDevice {
+    public static async find(
+        filter: (descriptor: IChromecastService) => boolean = acceptAny,
+        options: IDeviceOpts = {},
+    ) {
+        for await (const d of ChromecastDevice.discover(options)) {
+            const descriptor = await d.getServiceDescriptor();
+            if (!filter(descriptor)) continue;
+
+            debug("found matching device!");
+            return d;
+        }
+
+        throw new Error("Could not find a matching Chromecast");
+    }
+
+    public static async* discover(
+        options: IDeviceOpts = {},
+    ) {
+        for await (const info of discover()) {
+            yield new ChromecastDevice(info.name, options, info);
+        }
+    }
+
     constructor(
-        private readonly name: string,
+        public readonly name: string,
         private readonly options: IDeviceOpts = {},
         private service?: IChromecastService,
         private socket?: StratoSocket,
@@ -65,6 +92,10 @@ export class ChromecastDevice {
             appId: appIds,
         });
         return availability as Record<string, string>;
+    }
+
+    public async getServiceDescriptor() {
+        return this.service ?? findNamed(this.name);
     }
 
     public async getStatus() {
