@@ -13,12 +13,20 @@ export class StratoChannel {
 
     constructor(
         private readonly socket: StratoSocket,
-        private readonly namespace: string,
+        public readonly namespace: string,
         private readonly options: IChannelOptions = {},
     ) { }
 
     public get isConnected() {
         return this.socket.isConnected;
+    }
+
+    /**
+     * The app session (`transportId`) this Channel is targetting, if
+     * any. Guaranteed not-undefined when created via [StratoApp.channel]
+     */
+    public get destination() {
+        return this.options.destination;
     }
 
     public async receiveOne() {
