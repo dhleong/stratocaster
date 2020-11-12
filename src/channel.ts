@@ -13,7 +13,7 @@ export class StratoChannel {
 
     constructor(
         private readonly socket: StratoSocket,
-        public readonly namespace: string,
+        private readonly namespace: string,
         private readonly options: IChannelOptions = {},
     ) { }
 
@@ -21,6 +21,27 @@ export class StratoChannel {
         return this.socket.isConnected;
     }
 
+    /**
+     * Listen to all packets received on this channel
+     */
+    public async* receive() {
+        for await (const received of this.socket.receive()) {
+            if (received.namespace !== this.namespace) continue;
+            if (
+                this.options.destination
+                && this.options.destination !== received.source
+            ) {
+                continue;
+            }
+
+            yield received;
+        }
+    }
+
+    /**
+     * Send a JSON-style message object and await the response
+     * (expecting a parsed JSON object)
+     */
     public async send(message: Record<string, unknown>) {
         const toSend = {
             requestId: this.socket.nextId(),
@@ -30,7 +51,7 @@ export class StratoChannel {
         await this.write(toSend);
 
         // TODO timeout
-        for await (const m of this.socket.receive()) {
+        for await (const m of this.receive()) {
             if (Buffer.isBuffer(m.data) || typeof m.data === "string") {
                 continue;
             }
@@ -49,6 +70,10 @@ export class StratoChannel {
         throw new Error("Did not receive response");
     }
 
+    /**
+     * Write any sort of data message to this channel. Returns a promise
+     * that resolves when the write has completed
+     */
     public async write(message: MessageData) {
         if (this.options.destination && !this.hasConnected) {
             // ensure we've "CONNECT"'d to the destination, if provided
