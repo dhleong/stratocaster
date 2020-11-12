@@ -7,7 +7,7 @@ const debug = _debug("stratocaster:app");
 
 export class StratoApp {
     constructor(
-        private readonly id: string,
+        public readonly id: string,
         private readonly getStatus: () => Promise<IReceiverStatus>,
         private readonly channelImpl: (
             ns: string,
