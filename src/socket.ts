@@ -12,7 +12,7 @@ const DEFAULT_DESTINATION = "receiver-0";
 
 export type MessageData = string | Buffer | Record<string, unknown>;
 
-export interface Message {
+export interface IMessage {
     namespace: string;
     data: MessageData;
 
@@ -43,7 +43,7 @@ export class StratoSocket extends EventEmitter {
     private pendingDataLength = 0;
     private pendingData: Buffer | undefined;
 
-    private readonly receivers: CancellableAsyncSink<Message>[] = [];
+    private readonly receivers: CancellableAsyncSink<IMessage>[] = [];
     private lastId = 0;
 
     constructor(
@@ -103,7 +103,7 @@ export class StratoSocket extends EventEmitter {
     }
 
     public receive() {
-        const receiver = new CancellableAsyncSink<Message>(() => {
+        const receiver = new CancellableAsyncSink<IMessage>(() => {
             const idx = this.receivers.indexOf(receiver);
             if (idx !== -1) {
                 this.receivers.splice(idx, 1);
@@ -115,7 +115,7 @@ export class StratoSocket extends EventEmitter {
         return receiver;
     }
 
-    public async write(message: Message) {
+    public async write(message: IMessage) {
         const s = this.conn;
         if (!s) throw new Error("Not opened");
 
@@ -198,7 +198,7 @@ export class StratoSocket extends EventEmitter {
 
     private onMessageReceived(message: proto.CastMessage) {
         // broadcast as our convenient Message type
-        const parsed: Message = {
+        const parsed: IMessage = {
             source: message.sourceId,
             destination: message.destinationId,
             namespace: message.namespace,

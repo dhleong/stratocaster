@@ -13,7 +13,7 @@ export interface IChromecastService {
     port: number;
 }
 
-export interface DiscoveryOptions {
+export interface IDiscoveryOptions {
     /**
      * How long to search, in milliseconds; defaults to 30s.
      * Set to `0` to search forever.
@@ -21,7 +21,7 @@ export interface DiscoveryOptions {
     timeout?: number;
 }
 
-export const DEFAULT_DISCOVERY_OPTS: DiscoveryOptions = {
+export const DEFAULT_DISCOVERY_OPTS: IDiscoveryOptions = {
     timeout: 30000,
 };
 
@@ -73,7 +73,7 @@ function parseService(
 }
 
 export function discover(
-    options: DiscoveryOptions = DEFAULT_DISCOVERY_OPTS,
+    options: IDiscoveryOptions = DEFAULT_DISCOVERY_OPTS,
 ): AsyncIterable<IChromecastService> {
     const opts = {
         DEFAULT_DISCOVERY_OPTS,
@@ -117,7 +117,7 @@ export function discover(
 
 export async function findNamed(
     name: string,
-    options: DiscoveryOptions = DEFAULT_DISCOVERY_OPTS,
+    options: IDiscoveryOptions = DEFAULT_DISCOVERY_OPTS,
 ) {
     for await (const candidate of discover(options)) {
         if (candidate.name === name) {
