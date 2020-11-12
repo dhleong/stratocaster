@@ -102,7 +102,7 @@ export class StratoSocket extends EventEmitter {
         return ++this.lastId;
     }
 
-    public receive() {
+    public receive(): AsyncIterable<IMessage> {
         const receiver = new CancellableAsyncSink<IMessage>(() => {
             const idx = this.receivers.indexOf(receiver);
             if (idx !== -1) {
@@ -148,6 +148,10 @@ export class StratoSocket extends EventEmitter {
                 else resolve();
             });
         });
+    }
+
+    public createNew() {
+        return new StratoSocket(this.opts);
     }
 
     private onClosed() {

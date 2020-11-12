@@ -124,7 +124,7 @@ export class ChromecastDevice {
         }
 
         debug("connecting device:", this.service);
-        const socket = new StratoSocket(this.service);
+        const socket = existing?.createNew() ?? new StratoSocket(this.service);
         await socket.open();
         this.socket = socket;
 
@@ -148,6 +148,7 @@ export class ChromecastDevice {
                     delay(HEARTBEAT_TIMEOUT),
                 ]);
 
+                debug("result=", result);
                 if (!result) {
                     // timed out
                     debug("failed to receive heartbeat within deadline");
@@ -158,6 +159,7 @@ export class ChromecastDevice {
         s.on("closed", () => { clearTimeout(timeout); });
 
         // wait for the initial PONG
+        debug("waiting for PONG");
         await heartbeat.receiveOne();
 
         // auth: this step is optional
@@ -165,5 +167,7 @@ export class ChromecastDevice {
             const authChannel = new StratoChannel(s, DEVICE_AUTH_NS);
             await performAuth(authChannel);
         }
+
+        debug("connection set up!");
     }
 }
