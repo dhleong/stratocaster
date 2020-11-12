@@ -1,5 +1,11 @@
 import { AsyncSink } from "ix/asynciterable/asyncsink";
 
+export function delay(millis: number): Promise<void> {
+    return new Promise(resolve => {
+        setTimeout(resolve, millis);
+    });
+}
+
 /**
  * Drop-in replacement for AsyncSink that also handles early cancellation,
  * calling the method passed in the constructor

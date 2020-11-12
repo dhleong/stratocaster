@@ -12,14 +12,14 @@ export class StratoChannel {
         } = {},
     ) { }
 
-    public async request(message: Record<string, unknown>) {
+    public async send(message: Record<string, unknown>) {
         const toSend = {
             requestId: this.socket.nextId(),
             ...message,
         };
 
         // TODO timeout
-        await this.send(toSend);
+        await this.write(toSend);
         for await (const m of this.socket.receive()) {
             if (
                 !Buffer.isBuffer(m.data)
@@ -29,9 +29,11 @@ export class StratoChannel {
                 return m.data;
             }
         }
+
+        throw new Error("Did not receive response");
     }
 
-    public async send(message: MessageData) {
+    public async write(message: MessageData) {
         this.socket.write({
             namespace: this.namespace,
             destination: this.options.destination,

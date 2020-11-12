@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import _debug from "debug";
 import tls from "tls";
 
@@ -35,7 +36,7 @@ function parseData(message: proto.CastMessage): MessageData {
 /**
  * Low-level communication with a Chromecast device
  */
-export class StratoSocket {
+export class StratoSocket extends EventEmitter {
     private conn: tls.TLSSocket | undefined;
     private disconnected = false;
 
@@ -52,7 +53,9 @@ export class StratoSocket {
 
             senderId?: string,
         },
-    ) {}
+    ) {
+        super();
+    }
 
     public get isConnected() {
         return this.conn && !this.disconnected;
@@ -142,6 +145,8 @@ export class StratoSocket {
     }
 
     private onClosed() {
+        this.emit("closed");
+
         this.disconnected = true;
         for (const receiver of this.receivers) {
             // TODO forward error?
