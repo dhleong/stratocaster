@@ -13,7 +13,7 @@
     "lint": "eslint . --cache --ext .ts",
     "prepublishOnly": "npm run check",
     "protobufs:recompile:js": "pbjs resources/cast_channel.proto -t static-module -w commonjs -l eslint-disable -o src/util/cast_channel.js",
-    "protobufs:recompile:ts": "pbts src/util/cast_channel.js -o src/util/cast_channel.d.ts",
+    "protobufs:recompile:ts": "echo '/* eslint-disable */' > src/util/cast_channel.d.ts && pbts src/util/cast_channel.js >> src/util/cast_channel.d.ts",
     "protobufs:recompile": "npm run protobufs:recompile:js && npm run protobufs:recompile:ts",
     "test": "mocha -r ts-node/register test/**/*-test.ts"
   },

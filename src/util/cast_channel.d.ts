@@ -1,3 +1,4 @@
+/* eslint-disable */
 import * as $protobuf from "protobufjs";
 /** Namespace cast_channel. */
 export namespace cast_channel {
