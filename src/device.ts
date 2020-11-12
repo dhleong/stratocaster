@@ -1,14 +1,16 @@
 import _debug from "debug";
 
 import { StratoApp } from "./app";
+import { performAuth } from "./auth";
 import { IChannelOptions, StratoChannel } from "./channel";
 import { findNamed, IChromecastService } from "./discovery";
 import { StratoSocket } from "./socket";
 
 import {
     APP_AVAILABLE,
-    CONNECT_PAYLOAD,
     CONNECTION_NS,
+    CONNECT_PAYLOAD,
+    DEVICE_AUTH_NS,
     GET_STATUS_PAYLOAD,
     HEARTBEAT_NS,
     PING_PAYLOAD,
@@ -23,9 +25,14 @@ const HEARTBEAT_TIMEOUT = 5000;
 
 const debug = _debug("stratocaster:device");
 
+export interface IDeviceOpts {
+    authenticate?: boolean;
+}
+
 export class ChromecastDevice {
     constructor(
         private readonly name: string,
+        private readonly options: IDeviceOpts = {},
         private service?: IChromecastService,
         private socket?: StratoSocket,
     ) {}
@@ -91,12 +98,13 @@ export class ChromecastDevice {
         this.socket = socket;
 
         debug("setting up connection...");
-        await ChromecastDevice.prepareConnection(socket);
+        await this.prepareConnection(socket);
 
         return socket;
     }
 
-    private static async prepareConnection(s: StratoSocket) {
+    private async prepareConnection(s: StratoSocket) {
+        // CONNECT to the device
         const receiver = new StratoChannel(s, CONNECTION_NS);
         await receiver.write(CONNECT_PAYLOAD);
 
@@ -117,5 +125,14 @@ export class ChromecastDevice {
             })();
         }, HEARTBEAT_INTERVAL);
         s.on("closed", () => { clearTimeout(timeout); });
+
+        // wait for the initial PONG
+        await heartbeat.receiveOne();
+
+        // auth: this step is optional
+        if (this.options.authenticate) {
+            const authChannel = new StratoChannel(s, DEVICE_AUTH_NS);
+            await performAuth(authChannel);
+        }
     }
 }

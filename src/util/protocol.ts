@@ -1,3 +1,4 @@
+export const DEVICE_AUTH_NS = "urn:x-cast:com.google.cast.tp.deviceauth";
 export const CONNECTION_NS = "urn:x-cast:com.google.cast.tp.connection";
 export const HEARTBEAT_NS = "urn:x-cast:com.google.cast.tp.heartbeat";
 export const RECEIVER_NS = "urn:x-cast:com.google.cast.receiver";

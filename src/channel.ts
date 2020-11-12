@@ -21,6 +21,14 @@ export class StratoChannel {
         return this.socket.isConnected;
     }
 
+    public async receiveOne() {
+        for await (const received of this.receive()) {
+            return received;
+        }
+
+        throw new Error("Failed to receive any packet");
+    }
+
     /**
      * Listen to all packets received on this channel
      */
