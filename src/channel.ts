@@ -1,5 +1,5 @@
 import { StratoSocket, MessageData } from "./socket";
-import { PING_PAYLOAD } from "./util/protocol";
+import { PING_PAYLOAD, CONNECTION_NS } from "./util/protocol";
 
 export interface IChannelOptions {
     destination?: string;
@@ -9,6 +9,8 @@ export interface IChannelOptions {
  * High-level namespace-based Channel abstraction
  */
 export class StratoChannel {
+    private hasConnected = false;
+
     constructor(
         private readonly socket: StratoSocket,
         public readonly namespace: string,
@@ -48,6 +50,19 @@ export class StratoChannel {
     }
 
     public async write(message: MessageData) {
+        if (this.options.destination && !this.hasConnected) {
+            // ensure we've "CONNECT"'d to the destination, if provided
+            this.socket.write({
+                namespace: CONNECTION_NS,
+                data: {
+                    type: "CONNECT",
+                    origin: {},
+                },
+                destination: this.options.destination,
+            });
+            this.hasConnected = true;
+        }
+
         return this.socket.write({
             namespace: this.namespace,
             destination: this.options.destination,

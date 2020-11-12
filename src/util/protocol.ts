@@ -1,6 +1,7 @@
 export const CONNECTION_NS = "urn:x-cast:com.google.cast.tp.connection";
 export const HEARTBEAT_NS = "urn:x-cast:com.google.cast.tp.heartbeat";
 export const RECEIVER_NS = "urn:x-cast:com.google.cast.receiver";
+export const MEDIA_NS = "urn:x-cast:com.google.cast.media";
 
 export const CONNECT_PAYLOAD = { type: "CONNECT" };
 export const PING_PAYLOAD = { type: "PING" };
