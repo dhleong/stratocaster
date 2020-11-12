@@ -1,14 +1,20 @@
 import _debug from "debug";
 
-import { StratoChannel } from "./channel";
+import { StratoApp } from "./app";
+import { IChannelOptions, StratoChannel } from "./channel";
 import { findNamed, IChromecastService } from "./discovery";
 import { StratoSocket } from "./socket";
 
 import {
+    APP_AVAILABLE,
     CONNECT_PAYLOAD,
     CONNECTION_NS,
+    GET_STATUS_PAYLOAD,
     HEARTBEAT_NS,
     PING_PAYLOAD,
+    RECEIVER_NS,
+
+    IReceiverStatus,
 } from "./util/protocol";
 import { delay } from "./util/async";
 
@@ -24,9 +30,41 @@ export class ChromecastDevice {
         private socket?: StratoSocket,
     ) {}
 
-    public async channel(namespace: string) {
+    public async app(appId: string) {
+        const availability = await this.getAppAvailability([appId]);
+        if (!availability[appId]) {
+            throw new Error(`Did not receive availability for ${appId}`);
+        }
+        if (availability[appId] !== APP_AVAILABLE) {
+            throw new Error(`App ${appId} not available: ${availability[appId]}`);
+        }
+
+        return new StratoApp(
+            appId,
+            this.getStatus.bind(this),
+            this.channel.bind(this),
+        );
+    }
+
+    public async channel(namespace: string, opts: IChannelOptions = {}) {
         const socket = await this.ensureConnected();
-        return new StratoChannel(socket, namespace);
+        return new StratoChannel(socket, namespace, opts);
+    }
+
+    public async getAppAvailability(appIds: string[]) {
+        const receiver = await this.channel(RECEIVER_NS);
+        const { availability } = await receiver.send({
+            type: "GET_APP_AVAILABILITY",
+            appId: appIds,
+        });
+        return availability as Record<string, string>;
+    }
+
+    public async getStatus() {
+        const receiver = await this.channel(RECEIVER_NS);
+        const { status } = await receiver.send(GET_STATUS_PAYLOAD);
+        debug("got status=", JSON.stringify(status, null, 2));
+        return status as unknown as IReceiverStatus;
     }
 
     public close() {
@@ -36,7 +74,7 @@ export class ChromecastDevice {
         if (socket) socket.close();
     }
 
-    private async ensureConnected() {
+    protected async ensureConnected() {
         const existing = this.socket;
         if (existing && existing.isConnected) {
             return existing;
@@ -60,7 +98,7 @@ export class ChromecastDevice {
 
     private static async prepareConnection(s: StratoSocket) {
         const receiver = new StratoChannel(s, CONNECTION_NS);
-        await receiver.send(CONNECT_PAYLOAD);
+        await receiver.write(CONNECT_PAYLOAD);
 
         // handle heartbeat
         const heartbeat = new StratoChannel(s, HEARTBEAT_NS);

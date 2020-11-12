@@ -115,7 +115,7 @@ export class StratoSocket extends EventEmitter {
         return receiver;
     }
 
-    public write(message: Message) {
+    public async write(message: Message) {
         const s = this.conn;
         if (!s) throw new Error("Not opened");
 
@@ -141,7 +141,13 @@ export class StratoSocket extends EventEmitter {
         const data = writer.finish();
         const header = Buffer.alloc(4);
         header.writeUInt32BE(data.length, 0);
-        s.write(Buffer.concat([header, data]));
+
+        return new Promise((resolve, reject) => {
+            s.write(Buffer.concat([header, data]), err => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
     }
 
     private onClosed() {
@@ -186,7 +192,6 @@ export class StratoSocket extends EventEmitter {
         }
         this.pendingDataLength = 0;
 
-        debug("decoding", messageData);
         const message = proto.CastMessage.decode(messageData);
         this.onMessageReceived(message);
     }
