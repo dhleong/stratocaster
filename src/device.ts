@@ -27,6 +27,7 @@ const debug = _debug("stratocaster:device");
 
 export interface IDeviceOpts {
     authenticate?: boolean;
+    searchTimeout?: number;
 }
 
 function acceptAny() {
@@ -52,7 +53,7 @@ export class ChromecastDevice {
     public static async* discover(
         options: IDeviceOpts = {},
     ) {
-        for await (const info of discover()) {
+        for await (const info of discover({ timeout: options.searchTimeout })) {
             yield new ChromecastDevice(info.name, options, info);
         }
     }
@@ -120,7 +121,9 @@ export class ChromecastDevice {
 
         if (!this.service) {
             debug("locating device:", this.name);
-            this.service = await findNamed(this.name);
+            this.service = await findNamed(this.name, {
+                timeout: this.options.searchTimeout,
+            });
         }
 
         debug("connecting device:", this.service);
