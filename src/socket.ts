@@ -4,6 +4,7 @@ import tls from "tls";
 
 import { cast_channel as proto } from "./util/cast_channel";
 import { CancellableAsyncSink } from "./util/async";
+import { PONG_PAYLOAD } from "./util/protocol";
 
 const debug = _debug("stratocaster:socket");
 
@@ -18,6 +19,10 @@ export interface IMessage {
 
     source?: string;
     destination?: string;
+}
+
+export function isJson(data: MessageData): data is Record<string, unknown> {
+    return !Buffer.isBuffer(data) && typeof data !== "string";
 }
 
 function parseData(message: proto.CastMessage): MessageData {
@@ -216,8 +221,18 @@ export class StratoSocket extends EventEmitter {
             data: parseData(message),
         };
 
-        // TODO should we actually transform this to our Message?
         debug("received: ", message);
+
+        if (isJson(parsed.data) && parsed.data.type === "PING") {
+            this.write({
+                source: parsed.destination,
+                destination: parsed.source,
+                namespace: parsed.namespace,
+                data: PONG_PAYLOAD,
+            });
+            return;
+        }
+
         for (const receiver of this.receivers) {
             receiver.write(parsed);
         }

@@ -8,6 +8,12 @@ export {
     discover,
     findNamed,
 } from "./discovery";
-export { IMessage, MessageData, StratoSocket } from "./socket";
+export {
+    isJson,
+
+    IMessage,
+    MessageData,
+    StratoSocket,
+} from "./socket";
 
 export * from "./util/protocol";
