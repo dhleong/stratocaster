@@ -91,6 +91,7 @@ export function discover(
     };
 
     const sink = new CancellableAsyncSink<IChromecastService>(stopDiscovery);
+    const seenIds = new Set<string>();
 
     browser.on("ready", () => {
         debug("starting discovery...");
@@ -99,8 +100,9 @@ export function discover(
 
     browser.on("update", update => {
         const service = parseService(update);
-        if (service) {
+        if (service && !seenIds.has(service.id)) {
             debug("discovered: ", service);
+            seenIds.add(service.id);
             sink.write(service);
         }
     });
