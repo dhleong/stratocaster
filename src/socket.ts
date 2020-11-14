@@ -76,7 +76,14 @@ export class StratoSocket extends EventEmitter {
         // TODO handle errors, disconnects, etc.
         return new Promise((resolve/* , reject */) => {
             this.conn = tls.connect(target)
-                .on("end", () => this.onClosed())
+                .on("end", () => {
+                    debug("disconnected from host");
+                    this.onClosed();
+                })
+                .on("error", err => {
+                    debug("connection error:", err);
+                    this.onClosed(err);
+                })
                 .on("data", data => this.onDataReceived(data))
                 .on("secureConnect", () => {
                     // TODO: extract this to an "app" or something
@@ -154,13 +161,13 @@ export class StratoSocket extends EventEmitter {
         return new StratoSocket(this.opts);
     }
 
-    private onClosed() {
+    private onClosed(error?: Error) {
+        debug("closed; error=", error);
         this.emit("closed");
 
         this.disconnected = true;
         for (const receiver of this.receivers) {
-            // TODO forward error?
-            receiver.end();
+            receiver.end(error);
         }
     }
 

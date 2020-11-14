@@ -17,8 +17,9 @@ export class CancellableAsyncSink<T> implements AsyncIterator<T>, AsyncIterable<
         private readonly onCancel: () => void,
     ) {}
 
-    public end() {
-        this.sink.end();
+    public end(error?: Error) {
+        if (error) this.sink.error(error);
+        else this.sink.end();
     }
 
     public next() {
