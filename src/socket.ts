@@ -119,16 +119,21 @@ export class StratoSocket extends EventEmitter {
     }
 
     public receive({ signal }: IReceiveOpts = {}): AsyncIterable<IMessage> {
-        const receiver = new CancellableAsyncSink<IMessage>(() => {
+        let receiver: CancellableAsyncSink<IMessage>;
+        const onCancel = () => {
             const idx = this.receivers.indexOf(receiver);
             if (idx !== -1) {
                 this.receivers.splice(idx, 1);
             }
-        });
+        };
+        receiver = new CancellableAsyncSink<IMessage>(onCancel);
 
         this.receivers.push(receiver);
 
-        signal?.addEventListener("abort", () => receiver.end());
+        signal?.addEventListener("abort", () => {
+            onCancel();
+            receiver.end();
+        });
 
         return receiver;
     }
