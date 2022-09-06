@@ -14,12 +14,12 @@ describe("StratoSocket", () => {
 
     beforeEach(() => {
         socket = new StratoSocket({ address: "127.0.0.1", port: 9001 });
-        receiveMessage = (message) => setTimeout(() => {
+        receiveMessage = message => setTimeout(() => {
             (socket as any).onMessageReceived(
-                new proto.CastMessage(message)
+                new proto.CastMessage(message),
             );
         });
-    })
+    });
 
     describe("AbortSignal support", () => {
         let controller: AbortController;
@@ -28,10 +28,10 @@ describe("StratoSocket", () => {
 
         beforeEach(() => {
             controller = new AbortController();
-            const {signal} = controller;
+            const { signal } = controller;
             state = { iterated: [], iterating: true };
             iterating = async () => {
-                const iterable = socket.receive({signal});
+                const iterable = socket.receive({ signal });
                 for await (const message of iterable) {
                     state.iterated.push(message);
                     break;
