@@ -1,6 +1,8 @@
 import _debug from "debug";
 
 import { StratoChannel, IChannelOptions } from "./channel";
+import { IReceiveOpts } from "./socket";
+import { throwCancellationIfAborted } from "./util/async";
 import { RECEIVER_NS, IReceiverStatus, IReceiverApp } from "./util/protocol";
 
 const debug = _debug("stratocaster:app");
@@ -11,23 +13,25 @@ export class StratoApp {
         private readonly getStatus: () => Promise<IReceiverStatus>,
         private readonly channelImpl: (
             ns: string,
-            opts?: IChannelOptions,
+            opts?: IChannelOptions & IReceiveOpts,
         ) => Promise<StratoChannel>,
     ) {}
 
-    public async launch() {
-        await this.channel("");
+    public async launch(opts: IReceiveOpts = {}) {
+        await this.channel("", opts);
     }
 
-    public async channel(namespace: string) {
+    public async channel(namespace: string, opts: IReceiveOpts = {}) {
         // figure out if we need to join or start the session
         const status = await this.getStatus();
         for (const app of status.applications) {
             if (app.appId === this.id) {
                 debug("app", this.id, "already running");
-                return this.channelFromApp(app, namespace);
+                return this.channelFromApp(app, namespace, opts);
             }
         }
+
+        throwCancellationIfAborted(opts.signal);
 
         // join
         debug("launching app:", this.id);
@@ -35,7 +39,7 @@ export class StratoApp {
         const response = await receiver.send({
             type: "LAUNCH",
             appId: this.id,
-        });
+        }, opts);
 
         if (response.type !== "RECEIVER_STATUS") {
             throw new Error(`Unexpected LAUNCH response: ${response.type}`);
@@ -45,7 +49,7 @@ export class StratoApp {
         for (const app of applications) {
             if (app.appId === this.id) {
                 debug("app launched!");
-                return this.channelFromApp(app, namespace);
+                return this.channelFromApp(app, namespace, opts);
             }
         }
 
@@ -55,8 +59,10 @@ export class StratoApp {
     private async channelFromApp(
         app: IReceiverApp,
         namespace: string,
+        opts: IReceiveOpts,
     ) {
         return this.channelImpl(namespace, {
+            ...opts,
             destination: app.transportId,
         });
     }
