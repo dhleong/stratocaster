@@ -38,15 +38,15 @@ describe("ChromecastDevice", () => {
 
         // this could probably be simplified...
         s = new StratoSocket(info);
-        openStub = stub(StratoSocket.prototype, "open").resolves();
-        createNewStub = stub(StratoSocket.prototype, "createNew").returnsThis();
-        stub(StratoSocket.prototype, "receive")
+        openStub = stub(s, "open").resolves();
+        createNewStub = stub(s, "createNew").returnsThis();
+        stub(s, "receive")
             .returns(receiveSubject);
 
-        stub(StratoSocket.prototype, "close").callsFake(() => {
+        stub(s, "close").callsFake(() => {
             s.emit("closed");
         });
-        stub(StratoSocket.prototype, "write").callsFake(async m => {
+        stub(s, "write").callsFake(async m => {
             if ((m.data as any).requestId) {
                 // enqueue a "response"
                 enqueue(m);

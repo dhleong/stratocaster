@@ -22,18 +22,38 @@ describe("StratoSocket", () => {
     })
 
     describe("AbortSignal support", () => {
-        it("stops an iterating receive()", async () => {
-            const controller = new AbortController();
+        let controller: AbortController;
+        let state: { iterated: IMessage[], iterating: boolean };
+        let iterating: () => Promise<void>;
+
+        beforeEach(() => {
+            controller = new AbortController();
             const {signal} = controller;
-            const state = { iterated: [] as IMessage[], iterating: true };
-            const iterating = async () => {
-                for await (const message of socket.receive({signal})) {
+            state = { iterated: [], iterating: true };
+            iterating = async () => {
+                const iterable = socket.receive({signal});
+                for await (const message of iterable) {
                     state.iterated.push(message);
                     break;
                 }
                 state.iterating = false;
             };
+        });
 
+        it("stops an iterating receive()", async () => {
+            const promise = iterating();
+            state.iterating.should.be.true;
+
+            // Signal abort
+            controller.abort();
+
+            // We should stop iterating immediately:
+            await promise;
+            state.iterating.should.be.false;
+            state.iterated.should.be.empty;
+        });
+
+        it("does not iterate over received messages", async () => {
             const promise = iterating();
             state.iterating.should.be.true;
 
