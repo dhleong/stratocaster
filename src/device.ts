@@ -19,6 +19,7 @@ import {
     IReceiverStatus,
 } from "./util/protocol";
 import { delay, throwCancellationIfAborted } from "./util/async";
+import { receiveMediaStatus } from "./media";
 
 const HEARTBEAT_INTERVAL = 30000;
 const HEARTBEAT_TIMEOUT = 5000;
@@ -106,6 +107,10 @@ export class ChromecastDevice {
         const { status } = await receiver.send(GET_STATUS_PAYLOAD, opts);
         debug("got status=", JSON.stringify(status, null, 2));
         return status as unknown as IReceiverStatus;
+    }
+
+    public receiveMediaStatus(opts: IReceiveOpts = {}) {
+        return receiveMediaStatus(this, opts);
     }
 
     public close() {
