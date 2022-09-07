@@ -1,3 +1,5 @@
+import CancellationError from "./util/CancellationError";
+
 export { StratoApp } from "./app";
 export { IChannelOptions, StratoChannel } from "./channel";
 export { ChromecastDevice, IDeviceOpts } from "./device";
@@ -17,3 +19,4 @@ export {
 } from "./socket";
 
 export * from "./util/protocol";
+export { CancellationError };

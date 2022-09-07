@@ -1,9 +1,16 @@
 import { AsyncSink } from "ix/asynciterable/asyncsink";
+import CancellationError from "./CancellationError";
 
 export function delay(millis: number): Promise<void> {
     return new Promise(resolve => {
         setTimeout(resolve, millis);
     });
+}
+
+export function throwCancellationIfAborted(signal?: AbortSignal) {
+    if (signal?.aborted === true) {
+        throw new CancellationError();
+    }
 }
 
 /**

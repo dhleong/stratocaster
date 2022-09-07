@@ -51,6 +51,7 @@
     "typescript": "^4.0.5"
   },
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "debug": "^4.2.0",
     "ix": "^4.0.0",
     "mdns-js": "^1.0.3",

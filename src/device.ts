@@ -4,7 +4,7 @@ import { StratoApp } from "./app";
 import { performAuth } from "./auth";
 import { IChannelOptions, StratoChannel } from "./channel";
 import { discover, findNamed, IChromecastService } from "./discovery";
-import { StratoSocket } from "./socket";
+import { IReceiveOpts, StratoSocket } from "./socket";
 
 import {
     APP_AVAILABLE,
@@ -18,7 +18,7 @@ import {
 
     IReceiverStatus,
 } from "./util/protocol";
-import { delay } from "./util/async";
+import { delay, throwCancellationIfAborted } from "./util/async";
 
 const HEARTBEAT_INTERVAL = 30000;
 const HEARTBEAT_TIMEOUT = 5000;
@@ -30,6 +30,8 @@ export interface IDeviceOpts {
     searchTimeout?: number;
 }
 
+export type IQueryOpts = IDeviceOpts & IReceiveOpts;
+
 function acceptAny() {
     return true;
 }
@@ -37,7 +39,7 @@ function acceptAny() {
 export class ChromecastDevice {
     public static async find(
         filter: (descriptor: IChromecastService) => boolean = acceptAny,
-        options: IDeviceOpts = {},
+        options: IQueryOpts = {},
     ) {
         for await (const d of ChromecastDevice.discover(options)) {
             const descriptor = await d.getServiceDescriptor();
@@ -51,9 +53,9 @@ export class ChromecastDevice {
     }
 
     public static async* discover(
-        options: IDeviceOpts = {},
+        options: IQueryOpts = {},
     ) {
-        for await (const info of discover({ timeout: options.searchTimeout })) {
+        for await (const info of discover({ ...options, timeout: options.searchTimeout })) {
             yield new ChromecastDevice(info.name, options, info);
         }
     }
@@ -81,27 +83,27 @@ export class ChromecastDevice {
         );
     }
 
-    public async channel(namespace: string, opts: IChannelOptions = {}) {
-        const socket = await this.ensureConnected();
+    public async channel(namespace: string, opts: IChannelOptions & IReceiveOpts = {}) {
+        const socket = await this.ensureConnected(opts);
         return new StratoChannel(socket, namespace, opts);
     }
 
-    public async getAppAvailability(appIds: string[]) {
+    public async getAppAvailability(appIds: string[], opts: IReceiveOpts = {}) {
         const receiver = await this.channel(RECEIVER_NS);
         const { availability } = await receiver.send({
             type: "GET_APP_AVAILABILITY",
             appId: appIds,
-        });
+        }, opts);
         return availability as Record<string, string>;
     }
 
-    public async getServiceDescriptor() {
-        return this.service ?? findNamed(this.name);
+    public async getServiceDescriptor(opts: IReceiveOpts = {}) {
+        return this.service ?? findNamed(this.name, opts);
     }
 
-    public async getStatus() {
-        const receiver = await this.channel(RECEIVER_NS);
-        const { status } = await receiver.send(GET_STATUS_PAYLOAD);
+    public async getStatus(opts: IReceiveOpts = {}) {
+        const receiver = await this.channel(RECEIVER_NS, opts);
+        const { status } = await receiver.send(GET_STATUS_PAYLOAD, opts);
         debug("got status=", JSON.stringify(status, null, 2));
         return status as unknown as IReceiverStatus;
     }
@@ -113,7 +115,7 @@ export class ChromecastDevice {
         if (socket) socket.close();
     }
 
-    protected async ensureConnected() {
+    protected async ensureConnected(opts: IReceiveOpts) {
         const existing = this.socket;
         if (existing && existing.isConnected) {
             return existing;
@@ -122,6 +124,7 @@ export class ChromecastDevice {
         if (!this.service) {
             debug("locating device:", this.name);
             this.service = await findNamed(this.name, {
+                ...opts,
                 timeout: this.options.searchTimeout,
             });
         }
@@ -132,15 +135,17 @@ export class ChromecastDevice {
         this.socket = socket;
 
         debug("setting up connection...");
-        await this.prepareConnection(socket);
+        await this.prepareConnection(socket, opts);
 
         return socket;
     }
 
-    private async prepareConnection(s: StratoSocket) {
+    private async prepareConnection(s: StratoSocket, opts: IReceiveOpts) {
         // CONNECT to the device
         const receiver = new StratoChannel(s, CONNECTION_NS);
         await receiver.write(CONNECT_PAYLOAD);
+
+        throwCancellationIfAborted(opts.signal);
 
         // handle heartbeat
         const heartbeat = new StratoChannel(s, HEARTBEAT_NS);
@@ -163,12 +168,12 @@ export class ChromecastDevice {
 
         // wait for the initial PONG
         debug("waiting for PONG");
-        await heartbeat.receiveOne();
+        await heartbeat.receiveOne(opts);
 
         // auth: this step is optional
         if (this.options.authenticate) {
             const authChannel = new StratoChannel(s, DEVICE_AUTH_NS);
-            await performAuth(authChannel);
+            await performAuth(authChannel, opts);
         }
 
         debug("connection set up!");

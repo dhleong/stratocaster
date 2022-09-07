@@ -21,6 +21,10 @@ export interface IMessage {
     destination?: string;
 }
 
+export interface IReceiveOpts {
+    signal?: AbortSignal;
+}
+
 export function isJson(data: MessageData): data is Record<string, unknown> {
     return !Buffer.isBuffer(data) && typeof data !== "string";
 }
@@ -79,7 +83,7 @@ export class StratoSocket extends EventEmitter {
 
         debug("connecting:", target);
         // TODO handle errors, disconnects, etc.
-        return new Promise((resolve/* , reject */) => {
+        return new Promise<void>((resolve/* , reject */) => {
             this.conn = tls.connect(target)
                 .on("end", () => {
                     debug("disconnected from host");
@@ -114,15 +118,22 @@ export class StratoSocket extends EventEmitter {
         return ++this.lastId;
     }
 
-    public receive(): AsyncIterable<IMessage> {
-        const receiver = new CancellableAsyncSink<IMessage>(() => {
+    public receive({ signal }: IReceiveOpts = {}): AsyncIterable<IMessage> {
+        let receiver: CancellableAsyncSink<IMessage>;
+        const onCancel = () => {
             const idx = this.receivers.indexOf(receiver);
             if (idx !== -1) {
                 this.receivers.splice(idx, 1);
             }
-        });
+        };
+        receiver = new CancellableAsyncSink<IMessage>(onCancel);
 
         this.receivers.push(receiver);
+
+        signal?.addEventListener("abort", () => {
+            onCancel();
+            receiver.end();
+        });
 
         return receiver;
     }

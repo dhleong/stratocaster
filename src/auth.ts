@@ -1,12 +1,13 @@
 import _debug from "debug";
 
 import { StratoChannel } from "./channel";
+import { IReceiveOpts } from "./socket";
 
 import { cast_channel as proto } from "./util/cast_channel";
 
 const debug = _debug("stratocaster:auth");
 
-export async function performAuth(channel: StratoChannel) {
+export async function performAuth(channel: StratoChannel, opts: IReceiveOpts) {
     debug("sending auth challenge");
     const authMessage = new proto.DeviceAuthMessage({
         challenge: {},
@@ -15,7 +16,7 @@ export async function performAuth(channel: StratoChannel) {
         proto.DeviceAuthMessage.encode(authMessage).finish(),
     ));
 
-    const { data } = await channel.receiveOne();
+    const { data } = await channel.receiveOne(opts);
     debug("auth response raw data:", data);
 
     if (!Buffer.isBuffer(data)) {

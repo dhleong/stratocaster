@@ -1,7 +1,8 @@
 import _debug from "debug";
 import mdns from "mdns-js";
+import { IReceiveOpts } from "./socket";
 
-import { CancellableAsyncSink } from "./util/async";
+import { CancellableAsyncSink, throwCancellationIfAborted } from "./util/async";
 
 const debug = _debug("stratocaster:discovery");
 
@@ -13,7 +14,7 @@ export interface IChromecastService {
     port: number;
 }
 
-export interface IDiscoveryOptions {
+export interface IDiscoveryOptions extends IReceiveOpts {
     /**
      * How long to search, in milliseconds; defaults to 30s.
      * Set to `0` to search forever.
@@ -114,6 +115,11 @@ export function discover(
         }, opts.timeout);
     }
 
+    opts.signal?.addEventListener("abort", () => {
+        stopDiscovery();
+        sink.end();
+    });
+
     return sink;
 }
 
@@ -126,6 +132,8 @@ export async function findNamed(
             return candidate;
         }
     }
+
+    throwCancellationIfAborted(options.signal);
 
     throw new Error(`Could not find ${name}`);
 }
