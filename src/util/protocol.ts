@@ -24,7 +24,7 @@ export interface IReceiverApp {
 }
 
 export interface IReceiverStatus {
-    applications: IReceiverApp[];
+    applications?: IReceiverApp[];
     userEq: unknown;
     volume: {
         controlType: "attenuation";

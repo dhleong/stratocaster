@@ -24,10 +24,13 @@ export class StratoApp {
     public async channel(namespace: string, opts: IReceiveOpts = {}) {
         // figure out if we need to join or start the session
         const status = await this.getStatus();
-        for (const app of status.applications) {
-            if (app.appId === this.id) {
-                debug("app", this.id, "already running");
-                return this.channelFromApp(app, namespace, opts);
+
+        if (status.applications) {
+            for (const app of status.applications) {
+                if (app.appId === this.id) {
+                    debug("app", this.id, "already running");
+                    return this.channelFromApp(app, namespace, opts);
+                }
             }
         }
 
@@ -46,10 +49,12 @@ export class StratoApp {
         }
 
         const { applications } = response.status as IReceiverStatus;
-        for (const app of applications) {
-            if (app.appId === this.id) {
-                debug("app launched!");
-                return this.channelFromApp(app, namespace, opts);
+        if (applications) {
+            for (const app of applications) {
+                if (app.appId === this.id) {
+                    debug("app launched!");
+                    return this.channelFromApp(app, namespace, opts);
+                }
             }
         }
 
