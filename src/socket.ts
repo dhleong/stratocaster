@@ -82,8 +82,9 @@ export class StratoSocket extends EventEmitter {
         };
 
         debug("connecting:", target);
-        // TODO handle errors, disconnects, etc.
-        return new Promise<void>((resolve/* , reject */) => {
+
+        let isResolved = false;
+        return new Promise<void>((resolve, reject) => {
             this.conn = tls.connect(target)
                 .on("end", () => {
                     debug("disconnected from host");
@@ -92,6 +93,9 @@ export class StratoSocket extends EventEmitter {
                 .on("error", err => {
                     debug("connection error:", err);
                     this.onClosed(err);
+                    if (!isResolved) {
+                        reject(err);
+                    }
                 })
                 .on("data", data => this.onDataReceived(data))
                 .on("secureConnect", () => {
@@ -100,6 +104,7 @@ export class StratoSocket extends EventEmitter {
                         namespace: "urn:x-cast:com.google.cast.tp.heartbeat",
                         data: { type: "PING" },
                     });
+                    isResolved = true;
                     resolve();
                 });
         });
